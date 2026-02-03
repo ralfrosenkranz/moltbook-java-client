@@ -1,80 +1,82 @@
 # Moltbook Java Client
 
-Ein inoffizieller, typisierter Java-Client für die öffentliche **Moltbook REST API**
-sowie ein kleiner CLI-Demo-Client (**ShyClient**) zum Erkunden des realen Dienstes.
-
-Der Client orientiert sich am offiziellen Moltbook-Frontend
-(`moltbook-frontend/src/lib/api.ts`) und bildet dessen REST-Mapping möglichst
-1:1 nach.
+A typed Java client for the public **Moltbook REST API**
+as well as a small CLI demo client (**ShyClient**) for exploring the real service.
+The client is based on the official Moltbook frontend
+(`moltbook-frontend/src/lib/api.ts`) and replicates its REST mapping as closely as possible 1:1.
 
 ---
 
 ## Status
 
-**Funktionsfähig (Stand jetzt):**
+**Functional (as of now):**
 
-- Registrierung eines Agents
-- Persistieren und Laden des API-Keys
-- Lesen des eigenen Profils (`/agents/me`)
-- Auflisten von Submolts (paginiert)
-- Lesen einzelner Submolts
-- Lesen von Posts (`/posts`)
-- Lesen von Submolt-Feeds (`/submolts/{name}/feed`)
-- Lesen des globalen Feeds (`/feed`)
-- CLI-Demo (`ShyClient`) bis inkl. Feed-Aufrufe
+- Agent registration
+- Persisting and loading the API key
+- Reading the user's own profile (`/agents/me`)
 
-**Bekanntes Verhalten:**
+- Listing submolts (paginated)
 
-- `401 Unauthorized` bei Feed-Endpoints ist aktuell **erwartet**
-  (API-Key / Auth-Flow auf Server-Seite noch nicht stabil)
+- Reading individual submolts
+- Reading posts (`/posts`)
+- Reading submolt feeds (`/submolts/{name}/feed`)
+- Reading the global feed (`/feed`)
+- CLI demo (`ShyClient`) including feed requests
+
+**Known behavior:**
+
+- `401 Unauthorized` at feed endpoints is currently **expected**
+
+(API key / authentication flow on the server side is not yet stable)
 
 ---
 
-## Projektstruktur
+## Project Structure
 
 ```
 moltbook-java-client/
 ├── src/main/java/
-│   ├── de/ralfrosenkranz/moltbook/client/
-│   │   ├── api/
-│   │   ├── http/
-│   │   ├── model/
-│   │   └── response/
-│   └── de/ralfrosenkranz/moltbook/shy/
-│       └── ShyClient.java
+│ ├── de/ralfrosenkranz/moltbook/client/
+│ │ ├── api/
+│ │ ├── http/
+│ │ ├── model/
+│ │ └── response/
+│ └── de/ralfrosenkranz/moltbook/shy/
+│ └── ShyClient.java
 └── README.md
 ```
 
 ---
 
-## ShyClient (CLI-Demo)
+## ShyClient (CLI Demo)
 
-`ShyClient` ist ein bewusst einfacher CLI-Client, der:
+`ShyClient` is a deliberately simple CLI client that:
 
-1. einen Agent registriert (falls kein API-Key vorhanden)
-2. den API-Key lokal speichert
-3. Submolts auflistet
-4. Beispiel-Feeds abruft (global + Submolts)
+1. registers an agent (if no API key is available)
+2. the Stores API key locally
+3. Lists Submolts
+4. Retrieves sample feeds (global + Submolts)
 
-### Beispiel
+### Example
 
 ```bash
+
 java -jar shyclient.jar overview --submolts=20 --posts=25 --sample=3 --sort=new
 ```
 
 ---
 
-## Authentifizierung
+## Authentication
 
-- Auth erfolgt via `Authorization: Bearer <API_KEY>`
-- Basis-URL:
-  ```
-  https://www.moltbook.com/api/v1
-  ```
+- Auth is performed via `Authorization: Bearer <API_KEY>`
+- Base URL:
+```
+https://www.moltbook.com/api/v1
+```
 
 ---
 
-## Lizenz / Haftung
+## License / Liability
 
-- Inoffizieller Client
-- Nutzung auf eigene Verantwortung
+- Unofficial Client
+- Use at your own risk
