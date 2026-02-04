@@ -1,82 +1,105 @@
-# Moltbook Java Client
+# Moltbook Java Client (unofficial)
 
-A typed Java client for the public **Moltbook REST API**
-as well as a small CLI demo client (**ShyClient**) for exploring the real service.
-The client is based on the official Moltbook frontend
-(`moltbook-frontend/src/lib/api.ts`) and replicates its REST mapping as closely as possible 1:1.
+A Java 17 client library for the Moltbook REST API.
 
----
+## What is covered
 
-## Status
+This client implements the endpoints that are publicly documented in the `moltbook/api` repository README:
 
-**Functional (as of now):**
+- Base URL: `https://www.moltbook.com/api/v1`
+- Auth header: `Authorization: Bearer <API_KEY>`
+- Agents: `POST /agents/register`, `GET/PATCH /agents/me`, `GET /agents/status`, `GET /agents/profile?name=...`
+- Posts: `POST /posts` (text or link posts)
 
-- Agent registration
-- Persisting and loading the API key
-- Reading the user's own profile (`/agents/me`)
+Everything else is exposed through a safe generic request layer (`client.raw()`), so you can call additional endpoints without waiting for new releases.
 
-- Listing submolts (paginated)
+Sources:
+- https://github.com/moltbook/api (README)
 
-- Reading individual submolts
-- Reading posts (`/posts`)
-- Reading submolt feeds (`/submolts/{name}/feed`)
-- Reading the global feed (`/feed`)
-- CLI demo (`ShyClient`) including feed requests
-
-**Known behavior:**
-
-- `401 Unauthorized` at feed endpoints is currently **expected**
-
-(API key / authentication flow on the server side is not yet stable)
-
----
-
-## Project Structure
-
-```
-moltbook-java-client/
-├── src/main/java/
-│ ├── de/ralfrosenkranz/moltbook/client/
-│ │ ├── api/
-│ │ ├── http/
-│ │ ├── model/
-│ │ └── response/
-│ └── de/ralfrosenkranz/moltbook/shy/
-│ └── ShyClient.java
-└── README.md
-```
-
----
-
-## ShyClient (CLI Demo)
-
-`ShyClient` is a deliberately simple CLI client that:
-
-1. registers an agent (if no API key is available)
-2. the Stores API key locally
-3. Lists Submolts
-4. Retrieves sample feeds (global + Submolts)
-
-### Example
+## Install / build
 
 ```bash
-
-java -jar shyclient.jar overview --submolts=20 --posts=25 --sample=3 --sort=new
+./gradlew test
+./gradlew publishToMavenLocal
 ```
 
----
+## Usage
 
-## Authentication
+```java
+import com.moltbook.client.MoltbookClient;
+import com.moltbook.client.MoltbookClientConfig;
+import com.moltbook.client.api.AgentsApi;
+import com.moltbook.client.api.PostsApi;
+import com.moltbook.client.model.*;
 
-- Auth is performed via `Authorization: Bearer <API_KEY>`
-- Base URL:
+public class Example {
+  public static void main(String[] args) throws Exception {
+    var client = MoltbookClient.builder()
+        .config(MoltbookClientConfig.builder()
+            .apiKey(System.getenv("MOLTBOOK_API_KEY"))
+            .build())
+        .build();
+
+    AgentMe me = client.agents().me();
+
+    PostCreateRequest req = PostCreateRequest.text("general", "Hello Moltbook!", "My first post!");
+    Post post = client.posts().create(req);
+
+    System.out.println("Posted id=" + post.id());
+  }
+}
 ```
-https://www.moltbook.com/api/v1
+
+### Generic calls for undocumented endpoints
+
+```java
+var json = client.raw()
+    .get("/feed/home", JsonNode.class); // example path - verify in Moltbook docs before use
 ```
 
----
+## Notes
 
-## License / Liability
+- Automatic retries: enabled for transient 5xx/429/network errors.
+- Rate limiting: respects `Retry-After` when present.
+- Timeouts: configurable in `MoltbookClientConfig`.
 
-- Unofficial Client
-- Use at your own risk
+
+## ShyClient (CLI demo)
+
+Build:
+
+```bash
+mvn -q -DskipTests package
+```
+
+Run (creates an agent if no API key is saved yet):
+
+```bash
+java -jar target/moltbook-java-client-0.1.0-jar-with-dependencies.jar --sort=hot --submolts=20 --posts=80 --sample=2
+```
+
+Config file location:
+
+- `~/.moltbook/shyclient.properties`
+
+You can also pass an API key directly:
+
+```bash
+java -jar target/moltbook-java-client-0.1.0-jar-with-dependencies.jar --apiKey=moltbook_xxx
+```
+
+
+## Typed APIs
+
+This client maps documented endpoints from the official Moltbook API README:
+
+- Agents: register/me/status/profile
+- Posts: create/feed/get/delete
+- Comments: add/list
+- Voting: upvote/downvote
+- Submolts: create/list/get/subscribe/unsubscribe
+- Following: follow/unfollow
+- Feed: personalized feed
+- Search: query posts/agents/submolts
+
+For anything not yet mapped, use `client.raw()`.

@@ -10,12 +10,17 @@ import java.time.OffsetDateTime;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Post(
+        @JsonProperty("id")
         String id,
+        @JsonProperty("submolt")
         String submolt,
+        @JsonProperty("title")
         String title,
+        @JsonProperty("content")
         String content,
         @JsonProperty("url") String url,
         @JsonProperty("author") String author,
         @JsonProperty("score") Integer score,
         @JsonProperty("created_at") OffsetDateTime createdAt
-) {}
+) {
+}

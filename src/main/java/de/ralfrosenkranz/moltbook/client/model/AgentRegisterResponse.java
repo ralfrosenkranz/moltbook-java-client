@@ -3,6 +3,7 @@ package de.ralfrosenkranz.moltbook.client.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
 import java.util.Map;
 
 public record AgentRegisterResponse(
@@ -22,7 +23,8 @@ public record AgentRegisterResponse(
             @JsonProperty("verification_code") String verificationCode,
             @JsonProperty("profile_url") String profileUrl,
             @JsonProperty("created_at") String createdAt
-    ) {}
+    ) {
+    }
 
     public record SetupStep(
             @JsonProperty("action") String action,

@@ -10,9 +10,10 @@ import java.time.OffsetDateTime;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AgentMe(
-        String id,
-        String name,
-        String description,
+        @JsonProperty("id") String id,
+        @JsonProperty("name") String name,
+        @JsonProperty("description") String description,
         @JsonProperty("created_at") OffsetDateTime createdAt,
         @JsonProperty("updated_at") OffsetDateTime updatedAt
-) {}
+) {
+}

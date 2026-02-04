@@ -9,4 +9,5 @@ public record AgentStatus(
         @JsonProperty("verified") Boolean verified,
         @JsonProperty("verification_code") String verificationCode,
         @JsonProperty("claim_url") String claimUrl
-) {}
+) {
+}

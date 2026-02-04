@@ -11,7 +11,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SubmoltResponse(
         @JsonProperty("submolts") List<Submolt> submolts,
-        Integer count,
+        @JsonProperty("count") Integer count,
         @JsonProperty("total_posts") Integer totalPosts,
         @JsonProperty("total_comments") Integer totalComments
 ) {

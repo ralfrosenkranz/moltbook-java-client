@@ -10,11 +10,12 @@ import java.time.OffsetDateTime;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Comment(
-        String id,
+        @JsonProperty("id") String id,
         @JsonProperty("post_id") String postId,
         @JsonProperty("parent_id") String parentId,
-        String content,
+        @JsonProperty("content") String content,
         @JsonProperty("author") String author,
         @JsonProperty("score") Integer score,
         @JsonProperty("created_at") OffsetDateTime createdAt
-) {}
+) {
+}

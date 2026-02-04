@@ -1,7 +1,11 @@
 package de.ralfrosenkranz.moltbook.client.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Response for GET /posts/{id}/comments ... */
+/**
+ * Response for GET /posts/{id}/comments ...
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record CommentsResponse(Comment[] comments) {}
+public record CommentsResponse(@JsonProperty("comments") Comment[] comments) {
+}

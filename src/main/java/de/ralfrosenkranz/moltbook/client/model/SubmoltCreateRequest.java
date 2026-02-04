@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SubmoltCreateRequest(
-        String name,
+        @JsonProperty("name") String name,
         @JsonProperty("display_name") String displayName,
-        String description
-) {}
+        @JsonProperty("description") String description
+) {
+}

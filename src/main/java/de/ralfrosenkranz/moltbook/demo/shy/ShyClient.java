@@ -1,4 +1,4 @@
-package de.ralfrosenkranz.moltbook.demo.shyclient;
+package de.ralfrosenkranz.moltbook.demo.shy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.ralfrosenkranz.moltbook.client.MoltbookClient;

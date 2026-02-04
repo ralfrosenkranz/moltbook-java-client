@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CommentCreateRequest(
-        String content,
+        @JsonProperty("content") String content,
         @JsonProperty("parent_id") String parentId
-) {}
+) {
+}

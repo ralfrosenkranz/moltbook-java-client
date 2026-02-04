@@ -8,13 +8,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Submolt(
-        String id,
-        String name,
+        @JsonProperty("id") String id,
+        @JsonProperty("name") String name,
         @JsonProperty("display_name") String displayName,
-        String description,
+        @JsonProperty("description") String description,
         @JsonProperty("subscriber_count") Integer subscriberCount,
         @JsonProperty("created_at") String createdAt,
         @JsonProperty("last_activity_at") String lastActivityAt,
         @JsonProperty("featured_at") String featuredAt,
         @JsonProperty("created_by") String createdBy
-) {}
+) {
+}
