@@ -1,8 +1,11 @@
 package de.ralfrosenkranz.moltbook.demo.shy;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import de.ralfrosenkranz.moltbook.client.MoltbookClient;
 import de.ralfrosenkranz.moltbook.client.MoltbookClientConfig;
+import de.ralfrosenkranz.moltbook.client.http.MoltbookApiException;
 import de.ralfrosenkranz.moltbook.client.model.AgentRegisterRequest;
 import de.ralfrosenkranz.moltbook.client.model.AgentRegisterResponse;
 import de.ralfrosenkranz.moltbook.client.model.Post;
@@ -53,12 +56,18 @@ public final class ShyClient {
         if (isBlank(apiKey)) {
             System.out.println("No API key found. Registering a new agent (POST /agents/register).");
             RegistrationInput in = promptRegistrationInput(flags, props);
-            apiKey = registerAndPersist(cfgPath, props, baseUrl, in);
+            AgentRegisterResponse resp = registerAndPersist(cfgPath, props, baseUrl, in);
+
             System.out.println("Saved API key locally for future runs: " + cfgPath.toAbsolutePath());
-            System.out.println("Claim URL (optional verification step): " + in.claimUrl);
-        } else {
-            System.out.println("Using API key from " + cfgPath.toAbsolutePath());
+            if (!isBlank(in.claimUrl)) System.out.println("Claim URL (optional verification step): " + in.claimUrl);
+            System.out.println();
+            printAgentRegisterResponse(resp, "AgentRegisterResponse (freshly created)");
+
+            // Requirement: End after first-time registration + properties creation.
+            return;
         }
+
+        System.out.println("Using API key from " + cfgPath.toAbsolutePath());
 
         MoltbookClientConfig cfg = MoltbookClientConfig.builder()
                 .baseUrl(baseUrl)
@@ -67,6 +76,15 @@ public final class ShyClient {
 
         try (MoltbookClient client = MoltbookClient.builder().config(cfg).build()) {
             overview(client, flags);
+        } catch (MoltbookApiException e) {
+            if (e.statusCode() == 401) {
+                System.out.println();
+                System.out.println("HTTP 401 received. Displaying stored fullAgentRegisterResponse from properties.");
+                System.out.println();
+                displayStoredAgentRegisterResponse(props);
+                return;
+            }
+            throw e;
         }
     }
 
@@ -194,7 +212,7 @@ public final class ShyClient {
     }
 
 
-    private String registerAndPersist(Path cfgPath, Properties props, String baseUrl, RegistrationInput in) throws IOException {
+    private AgentRegisterResponse registerAndPersist(Path cfgPath, Properties props, String baseUrl, RegistrationInput in) throws IOException {
         MoltbookClientConfig cfg = MoltbookClientConfig.builder()
                 .baseUrl(baseUrl)
                 .apiKey(null) // register does not require an existing API key
@@ -219,8 +237,112 @@ public final class ShyClient {
             if (!isBlank(claimUrl)) props.setProperty("claimUrl", claimUrl);
 
             storeProps(cfgPath, props);
-            return apiKey;
+            return resp;
         }
+    }
+
+    private static void displayStoredAgentRegisterResponse(Properties props) {
+        String json = props.getProperty("fullAgentRegisterResponse");
+        if (isBlank(json)) {
+            System.out.println("No stored fullAgentRegisterResponse found in properties.");
+            return;
+        }
+        try {
+            AgentRegisterResponse resp = parseAgentRegisterResponse(json);
+            printAgentRegisterResponse(resp, "AgentRegisterResponse (from properties: fullAgentRegisterResponse)");
+        } catch (Exception ex) {
+            System.out.println("Failed to parse stored fullAgentRegisterResponse JSON.");
+            System.out.println("Error: " + ex.getMessage());
+            System.out.println();
+            System.out.println("Raw JSON:");
+            System.out.println(json);
+        }
+    }
+
+    private static AgentRegisterResponse parseAgentRegisterResponse(String json) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(json, AgentRegisterResponse.class);
+    }
+
+    private static void printAgentRegisterResponse(AgentRegisterResponse resp, String title) {
+        System.out.println("=== " + title + " ===");
+        if (resp == null) {
+            System.out.println("(null)");
+            return;
+        }
+
+        System.out.println("success: " + resp.success());
+        if (!isBlank(resp.status())) System.out.println("status:  " + resp.status());
+        if (!isBlank(resp.message())) System.out.println("message: " + resp.message());
+        System.out.println();
+
+        if (resp.agent() != null) {
+            var a = resp.agent();
+            System.out.println("Agent:");
+            if (!isBlank(a.id())) System.out.println("  id:                " + a.id());
+            if (!isBlank(a.name())) System.out.println("  name:              " + a.name());
+            if (!isBlank(a.apiKey())) System.out.println("  api_key:           " + a.apiKey());
+            if (!isBlank(a.claimUrl())) System.out.println("  claim_url:         " + a.claimUrl());
+            if (!isBlank(a.verificationCode())) System.out.println("  verification_code: " + a.verificationCode());
+            if (!isBlank(a.profileUrl())) System.out.println("  profile_url:       " + a.profileUrl());
+            if (!isBlank(a.createdAt())) System.out.println("  created_at:        " + a.createdAt());
+            System.out.println();
+        }
+
+        if (resp.setup() != null && !resp.setup().isEmpty()) {
+            System.out.println("Setup steps (" + resp.setup().size() + "):");
+            List<String> keys = new ArrayList<>(resp.setup().keySet());
+            Collections.sort(keys);
+            for (String key : keys) {
+                AgentRegisterResponse.SetupStep step = resp.setup().get(key);
+                System.out.println();
+                System.out.println("- " + key);
+                if (step == null) {
+                    System.out.println("  (null)");
+                    continue;
+                }
+                if (!isBlank(step.action())) System.out.println("  action:            " + step.action());
+                System.out.println("  critical:          " + step.critical());
+                if (!isBlank(step.why())) System.out.println("  why:               " + step.why());
+                if (!isBlank(step.details())) System.out.println("  details:           " + step.details());
+                if (!isBlank(step.url())) System.out.println("  url:               " + step.url());
+                if (!isBlank(step.messageTemplate())) {
+                    System.out.println("  message_template:");
+                    for (String line : step.messageTemplate().split("\\R")) {
+                        System.out.println("    " + line);
+                    }
+                }
+            }
+            System.out.println();
+        }
+
+        if (resp.skillFiles() != null && !resp.skillFiles().isEmpty()) {
+            System.out.println("Skill files (" + resp.skillFiles().size() + "):");
+            List<String> keys = new ArrayList<>(resp.skillFiles().keySet());
+            Collections.sort(keys);
+            for (String k : keys) {
+                System.out.println("  - " + k + ": " + resp.skillFiles().get(k));
+            }
+            System.out.println();
+        }
+
+        if (!isBlank(resp.tweetTemplate())) {
+            System.out.println("tweet_template:");
+            System.out.println(resp.tweetTemplate());
+            System.out.println();
+        }
+
+        // Also print pretty JSON for copy/paste/debug.
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            System.out.println("Raw JSON:");
+            System.out.println(mapper.writeValueAsString(resp));
+        } catch (Exception ignored) {
+            System.out.println("Raw JSON:");
+            System.out.println(resp.asJson());
+        }
+        System.out.println("=== END ===");
     }
 
     private RegistrationInput promptRegistrationInput(Map<String, String> flags, Properties props) {
