@@ -96,4 +96,5 @@
       </plugin>
     </plugins>
   </build>
+    <name>moltbook-java-client-spring-starter-trial</name>
 </project>
