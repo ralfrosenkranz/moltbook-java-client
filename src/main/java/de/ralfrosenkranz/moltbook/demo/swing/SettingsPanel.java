@@ -101,19 +101,32 @@ final class SettingsPanel extends JPanel {
                 @Override public void onSuccess(AgentRegisterResponse value) {
                     out.setText(JsonUtil.pretty(value));
                     String newKey = value != null && value.agent() != null ? value.agent().apiKey() : null;
+                    String claimUrl = value != null && value.agent() != null ? value.agent().claimUrl() : null;
                     if (newKey != null && !newKey.isBlank()) {
                         apiKey.setText(newKey);
-                        cm.updateSettings(baseUrl.getText(), newKey);
+                        // Persist using the same keys as ShyClient
+                        cm.storeRegistration(baseUrl.getText(), newKey, n, value.asJson(), claimUrl);
                         props.setProperty(ClientManager.KEY_BASE_URL, cm.baseUrl());
                         props.setProperty(ClientManager.KEY_API_KEY, cm.apiKey());
+                        props.setProperty(ClientManager.KEY_AGENT_NAME, n);
+                        props.setProperty(ClientManager.KEY_FULL_AGENT_REGISTER_RESPONSE, value.asJson());
+                        if (claimUrl != null && !claimUrl.isBlank()) {
+                            props.setProperty(ClientManager.KEY_CLAIM_URL, claimUrl);
+                        }
                         try {
                             ConfigStore.save(props);
                         } catch (IOException ex) {
                             // ignore; still show API output
                         }
+                        // Requirement: show the complete registration response in a popup.
+                        JTextArea area = new JTextArea(value.asJson(), 22, 90);
+                        area.setEditable(false);
+                        area.setLineWrap(true);
+                        area.setWrapStyleWord(true);
                         JOptionPane.showMessageDialog(SettingsPanel.this,
-                                "Registered. API key stored in config and applied.",
-                                "Registered", JOptionPane.INFORMATION_MESSAGE);
+                                new JScrollPane(area),
+                                "Registration response (incl. setup steps)",
+                                JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
                 @Override public void onError(Throwable error) {

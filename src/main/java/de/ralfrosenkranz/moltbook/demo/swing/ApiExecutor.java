@@ -41,13 +41,37 @@ final class ApiExecutor {
     }
 
     static void showError(JComponent parent, Throwable t) {
-        String msg;
+        StringBuilder sb = new StringBuilder();
+
         if (t instanceof MoltbookApiException mae) {
-            msg = "HTTP " + mae.statusCode() + "\n\n" + mae.getMessage();
+            sb.append("HTTP ").append(mae.statusCode()).append("\n\n");
+            sb.append(mae.getMessage() == null ? "" : mae.getMessage());
+
+            // Requirement: if a 401 error happens, show the auth error and the stored registration JSON.
+            if (mae.statusCode() == 401) {
+                sb.append("\n\n---\nStored fullAgentRegisterResponse (from ")
+                        .append(ConfigStore.configPath().toAbsolutePath())
+                        .append("):\n\n");
+                try {
+                    var props = ConfigStore.loadOrCreate();
+                    String stored = props.getProperty(ClientManager.KEY_FULL_AGENT_REGISTER_RESPONSE, "");
+                    if (stored == null || stored.trim().isEmpty()) {
+                        sb.append("(no stored fullAgentRegisterResponse found)");
+                    } else {
+                        sb.append(stored);
+                    }
+                } catch (Exception ex) {
+                    sb.append("(failed to load stored registration response: ")
+                            .append(ex.getMessage())
+                            .append(")");
+                }
+            }
         } else {
-            msg = t.getClass().getSimpleName() + "\n\n" + t.getMessage();
+            sb.append(t.getClass().getSimpleName()).append("\n\n");
+            sb.append(t.getMessage() == null ? "" : t.getMessage());
         }
-        JTextArea area = new JTextArea(msg, 10, 60);
+
+        JTextArea area = new JTextArea(sb.toString(), 16, 80);
         area.setEditable(false);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);

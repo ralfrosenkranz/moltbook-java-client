@@ -12,6 +12,10 @@ import java.util.Properties;
 final class ClientManager {
     static final String KEY_BASE_URL = "baseUrl";
     static final String KEY_API_KEY = "apiKey";
+    // Keep the same keys as used by ShyClient (shyclient.properties)
+    static final String KEY_AGENT_NAME = "agentName";
+    static final String KEY_FULL_AGENT_REGISTER_RESPONSE = "fullAgentRegisterResponse";
+    static final String KEY_CLAIM_URL = "claimUrl";
 
     private final Properties props;
     private MoltbookClient client;
@@ -33,10 +37,42 @@ final class ClientManager {
         return props.getProperty(KEY_API_KEY, "");
     }
 
+    synchronized String agentName() {
+        return props.getProperty(KEY_AGENT_NAME, "");
+    }
+
+    synchronized String fullAgentRegisterResponse() {
+        return props.getProperty(KEY_FULL_AGENT_REGISTER_RESPONSE, "");
+    }
+
+    synchronized String claimUrl() {
+        return props.getProperty(KEY_CLAIM_URL, "");
+    }
+
     synchronized void updateSettings(String baseUrl, String apiKey) {
         if (baseUrl != null) props.setProperty(KEY_BASE_URL, baseUrl.trim());
         if (apiKey != null) props.setProperty(KEY_API_KEY, apiKey.trim());
         rebuild();
+    }
+
+    synchronized void storeRegistration(String baseUrl,
+                                        String apiKey,
+                                        String agentName,
+                                        String fullAgentRegisterResponse,
+                                        String claimUrl) {
+        if (baseUrl != null) props.setProperty(KEY_BASE_URL, baseUrl.trim());
+        if (apiKey != null) props.setProperty(KEY_API_KEY, apiKey.trim());
+        if (agentName != null) props.setProperty(KEY_AGENT_NAME, agentName.trim());
+        if (fullAgentRegisterResponse != null) props.setProperty(KEY_FULL_AGENT_REGISTER_RESPONSE, fullAgentRegisterResponse);
+        if (claimUrl != null && !claimUrl.trim().isBlank()) props.setProperty(KEY_CLAIM_URL, claimUrl.trim());
+        rebuild();
+    }
+
+    synchronized boolean isConfigComplete() {
+        return !baseUrl().isBlank()
+                && !apiKey().isBlank()
+                && !agentName().isBlank()
+                && !fullAgentRegisterResponse().isBlank();
     }
 
     private void rebuild() {
