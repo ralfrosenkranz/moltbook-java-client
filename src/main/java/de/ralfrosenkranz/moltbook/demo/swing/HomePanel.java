@@ -214,7 +214,10 @@ final class HomePanel extends JPanel {
         }
         StringBuilder sb = new StringBuilder();
         sb.append(p.title() == null ? "" : p.title()).append("\n");
-        sb.append("submolt: ").append(p.submolt()).append("   author: ").append(p.author()).append("   score: ").append(p.score()).append("\n");
+        sb.append("submolt: ").append(submoltLabel(p.submolt()))
+                .append("   author: ").append(authorLabel(p.author()))
+                .append("   score: ").append(p.score())
+                .append("\n");
         sb.append("id: ").append(p.id()).append("   created_at: ").append(p.createdAt()).append("\n\n");
         if (p.url() != null && !p.url().isBlank()) {
             sb.append("url: ").append(p.url()).append("\n\n");
@@ -290,6 +293,20 @@ final class HomePanel extends JPanel {
     private static String blankToNull(String s) {
         return s == null || s.trim().isBlank() ? null : s.trim();
     }
+
+    private static String submoltLabel(de.ralfrosenkranz.moltbook.client.model.Submolt sm) {
+        if (sm == null) return "";
+        String name = sm.name();
+        if (name != null && !name.isBlank()) return name;
+        String id = sm.id();
+        return id == null ? "" : id;
+    }
+
+    private static String authorLabel(de.ralfrosenkranz.moltbook.client.model.Author a) {
+        if (a == null) return "";
+        String label = a.displayLabel();
+        return label == null ? "" : label;
+    }
     private static Integer parseIntOrNull(String s) {
         try {
             String t = s == null ? "" : s.trim();
@@ -305,7 +322,7 @@ final class HomePanel extends JPanel {
             JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof Post p) {
                 String score = p.score() == null ? "" : String.valueOf(p.score());
-                String sub = p.submolt() == null ? "" : p.submolt();
+                String sub = submoltLabel(p.submolt());
                 l.setText("[" + score + "] " + sub + "  " + (p.title() == null ? "" : p.title()));
                 l.setToolTipText(p.id());
             }
@@ -318,7 +335,7 @@ final class HomePanel extends JPanel {
             JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof Comment c) {
                 String score = c.score() == null ? "" : String.valueOf(c.score());
-                String author = c.author() == null ? "" : c.author();
+                String author = authorLabel(c.author());
                 String content = c.content() == null ? "" : c.content().replace("\n", " ");
                 if (content.length() > 120) content = content.substring(0, 120) + "…";
                 l.setText("[" + score + "] " + author + ": " + content);

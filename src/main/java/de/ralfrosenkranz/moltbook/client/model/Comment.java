@@ -2,6 +2,7 @@ package de.ralfrosenkranz.moltbook.client.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.time.OffsetDateTime;
 
@@ -14,7 +15,8 @@ public record Comment(
         @JsonProperty("post_id") String postId,
         @JsonProperty("parent_id") String parentId,
         @JsonProperty("content") String content,
-        @JsonProperty("author") String author,
+        @JsonDeserialize(using = AuthorLenientDeserializer.class)
+        @JsonProperty("author") Author author,
         @JsonProperty("score") Integer score,
         @JsonProperty("created_at") OffsetDateTime createdAt
 ) {

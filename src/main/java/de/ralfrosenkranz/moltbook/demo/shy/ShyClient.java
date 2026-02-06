@@ -139,8 +139,8 @@ public final class ShyClient {
                 for (int i = 0; i < Math.min(postLimit, feedPosts.size()); i++) {
                     Post p = feedPosts.get(i);
                     String title = firstNonBlank(safe(p.title()), "(no title)");
-                    String sm = safe(p.submolt());
-                    String author = safe(p.author());
+                    String sm = submoltLabel(p.submolt());
+                    String author = authorLabel(p.author());
                     String id = safe(p.id());
 
                     String line = "[" + (i + 1) + "] " + shrink(title, 120);
@@ -184,7 +184,7 @@ public final class ShyClient {
                 for (int j = 0; j < Math.min(samplePerSubmolt, posts.size()); j++) {
                     var p = posts.get(j);
                     String title = firstNonBlank(safe(p.title()), "(no title)");
-                    String author = safe(p.author());
+                    String author = authorLabel(p.author());
                     String id = safe(p.id());
                     String content = safe(p.content());
                     String url = safe(p.url());
@@ -211,6 +211,20 @@ public final class ShyClient {
         return s != null ? s : "";
     }
 
+    private String submoltLabel(de.ralfrosenkranz.moltbook.client.model.Submolt sm) {
+        if (sm == null) return "";
+        String name = safe(sm.name());
+        if (!isBlank(name)) return name;
+        String id = safe(sm.id());
+        if (!isBlank(id)) return id;
+        return "";
+    }
+
+    private String authorLabel(de.ralfrosenkranz.moltbook.client.model.Author a) {
+        if (a == null) return "";
+        String s = a.displayLabel();
+        return s == null ? "" : s;
+    }
 
     private AgentRegisterResponse registerAndPersist(Path cfgPath, Properties props, String baseUrl, RegistrationInput in) throws IOException {
         MoltbookClientConfig cfg = MoltbookClientConfig.builder()
