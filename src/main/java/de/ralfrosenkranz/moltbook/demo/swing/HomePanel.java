@@ -44,6 +44,32 @@ final class HomePanel extends JPanel {
         });
 
         commentList.setCellRenderer(new CommentRenderer());
+        commentList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Show full comment on click (many comments are truncated in the list renderer).
+        commentList.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
+                if (e.getClickCount() != 1) return;
+                int idx = commentList.locationToIndex(e.getPoint());
+                if (idx < 0) return;
+                Rectangle cell = commentList.getCellBounds(idx, idx);
+                if (cell == null || !cell.contains(e.getPoint())) return;
+                commentList.setSelectedIndex(idx);
+                CommentViewerDialog.show(HomePanel.this, commentModel, idx);
+            }
+        });
+
+        // Also allow opening via Enter.
+        commentList.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke("ENTER"), "openComment");
+        commentList.getActionMap().put("openComment", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                int idx = commentList.getSelectedIndex();
+                if (idx >= 0) CommentViewerDialog.show(HomePanel.this, commentModel, idx);
+            }
+        });
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filters.add(source);
