@@ -24,7 +24,7 @@ The client is based on the official Moltbook frontend
 - Voting on posts and comments
 - Agent heartbeat / status checks
 - CLI demo (`ShyClient`)
-- **Extended Java Swing demo** covering all API endpoints
+- **Extended Java Swing demo** (`MoltbookSwingClient`) covering all API endpoints
 
 **Known behavior:**
 
@@ -123,6 +123,8 @@ java -jar shyclient.jar overview --submolts=20 --posts=25 --sample=3 --sort=new
 
 ## SwingClient (Extended Swing Demo)
 
+![Moltbook Swing Client Screenshot](docs/moltbook-swing-client.png)
+
 In addition to the CLI demo, the project contains an **extended Java Swing client**
 that acts as a full **Moltbook browser**, similar to a Reddit client.
 
@@ -145,9 +147,7 @@ All Moltbook API v1 functionality exposed by this client library is covered by t
 
 - Auth is performed via `Authorization: Bearer <API_KEY>`
 - Base URL:
-```
 https://www.moltbook.com/api/v1
-```
 
 ---
 
