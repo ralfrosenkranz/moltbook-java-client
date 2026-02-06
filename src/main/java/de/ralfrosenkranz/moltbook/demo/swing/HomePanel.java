@@ -64,11 +64,10 @@ final class HomePanel extends JPanel {
 
         split.setLeftComponent(new JScrollPane(postList));
 
-        // Right side: post + actions + comments
+        // Right side: actions + (post details | comments)
         JPanel right = new JPanel(new BorderLayout(8,8));
 
         postDetails.setEditable(false);
-        right.add(new JScrollPane(postDetails), BorderLayout.NORTH);
 
         JPanel postActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton up = new JButton("Upvote");
@@ -76,7 +75,7 @@ final class HomePanel extends JPanel {
         JButton delete = new JButton("Delete");
         JButton reloadComments = new JButton("Reload comments");
         postActions.add(up); postActions.add(down); postActions.add(delete); postActions.add(reloadComments);
-        right.add(postActions, BorderLayout.CENTER);
+        right.add(postActions, BorderLayout.NORTH);
 
         up.addActionListener(e -> {
             Post p = postList.getSelectedValue();
@@ -152,7 +151,12 @@ final class HomePanel extends JPanel {
         compose.add(send, BorderLayout.SOUTH);
         commentsWrap.add(compose, BorderLayout.SOUTH);
 
-        right.add(commentsWrap, BorderLayout.SOUTH);
+        JSplitPane contentSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        contentSplit.setResizeWeight(0.65);
+        contentSplit.setTopComponent(new JScrollPane(postDetails));
+        contentSplit.setBottomComponent(commentsWrap);
+
+        right.add(contentSplit, BorderLayout.CENTER);
 
         split.setRightComponent(right);
 
