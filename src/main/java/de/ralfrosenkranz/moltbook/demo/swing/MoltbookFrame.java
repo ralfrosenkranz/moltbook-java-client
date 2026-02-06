@@ -19,6 +19,7 @@ final class MoltbookFrame extends JFrame {
         tabs.addTab("Search", new SearchPanel(cm));
         tabs.addTab("Voting", new VotingPanel(cm));
         tabs.addTab("Raw", new RawPanel(cm));
+        tabs.addTab("Heartbeat", new HeartbeatPanel(cm));
         tabs.addTab("Settings / Register", new SettingsPanel(cm, props));
 
         setContentPane(tabs);

@@ -20,47 +20,43 @@ final class ConfigStore {
         return Path.of(home, CONFIG_DIR, CONFIG_FILE);
     }
 
+    /**
+     * Loads settings from ~/.moltbook/swingclient.properties.
+     *
+     * Important: This method MUST NOT create or write the properties file.
+     * The file is only created when we actually persist real data (e.g. after registration).
+     */
     static Properties loadOrCreate() throws IOException {
         Path p = configPath();
         Properties props = new Properties();
-        boolean changed = false;
         if (Files.exists(p)) {
             try (InputStream in = Files.newInputStream(p)) {
                 props.load(in);
             }
-        } else {
-            Files.createDirectories(p.getParent());
-            changed = true;
         }
-
-        // Ensure the same keys exist as in shyclient.properties (even if blank)
-        changed |= ensureKey(props, ClientManager.KEY_BASE_URL, "https://www.moltbook.com/api/v1");
-        changed |= ensureKey(props, ClientManager.KEY_API_KEY, "");
-        changed |= ensureKey(props, ClientManager.KEY_AGENT_NAME, "");
-        changed |= ensureKey(props, ClientManager.KEY_FULL_AGENT_REGISTER_RESPONSE, "");
-        changed |= ensureKey(props, ClientManager.KEY_CLAIM_URL, "");
-
-        if (changed) {
-            Files.createDirectories(p.getParent());
-            try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                props.store(out, "Moltbook Swing client settings");
-            }
-        }
+        // No auto-population here; defaults are applied in the UI/business logic.
         return props;
-    }
-
-    private static boolean ensureKey(Properties props, String key, String defaultValue) {
-        if (props.containsKey(key)) return false;
-        props.setProperty(key, defaultValue == null ? "" : defaultValue);
-        return true;
     }
 
     static void save(Properties props) throws IOException {
         Objects.requireNonNull(props, "props");
         Path p = configPath();
         Files.createDirectories(p.getParent());
+
+        // When we DO save, we mirror ShyClient by ensuring the expected keys exist in the file.
+        ensureKey(props, ClientManager.KEY_BASE_URL, "https://www.moltbook.com/api/v1");
+        ensureKey(props, ClientManager.KEY_API_KEY, "");
+        ensureKey(props, ClientManager.KEY_AGENT_NAME, "");
+        ensureKey(props, ClientManager.KEY_FULL_AGENT_REGISTER_RESPONSE, "");
+        ensureKey(props, ClientManager.KEY_CLAIM_URL, "");
+
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             props.store(out, "Moltbook Swing client settings");
         }
+    }
+
+    private static void ensureKey(Properties props, String key, String defaultValue) {
+        if (props.containsKey(key)) return;
+        props.setProperty(key, defaultValue == null ? "" : defaultValue);
     }
 }

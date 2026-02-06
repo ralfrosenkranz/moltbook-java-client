@@ -71,8 +71,12 @@ final class SettingsPanel extends JPanel {
         gr.fill = GridBagConstraints.HORIZONTAL;
         gr.weightx = 1;
 
-        JTextField name = new JTextField(30);
+        // Like ShyClient: prefill a sensible agent name (existing one if present, otherwise generated).
+        String defaultName = firstNonBlank(props.getProperty(ClientManager.KEY_AGENT_NAME), "RRSwingClient_" + randomSuffix());
+        JTextField name = new JTextField(defaultName, 30);
         JTextArea desc = UiUtil.textArea(4, 30);
+        String defaultDesc = firstNonBlank(props.getProperty("description"), "Swing demo agent (RRSwingClient)");
+        desc.setText(defaultDesc);
 
         int rr=0;
         gr.gridx=0; gr.gridy=rr; gr.weightx=0;
@@ -118,15 +122,8 @@ final class SettingsPanel extends JPanel {
                         } catch (IOException ex) {
                             // ignore; still show API output
                         }
-                        // Requirement: show the complete registration response in a popup.
-                        JTextArea area = new JTextArea(value.asJson(), 22, 90);
-                        area.setEditable(false);
-                        area.setLineWrap(true);
-                        area.setWrapStyleWord(true);
-                        JOptionPane.showMessageDialog(SettingsPanel.this,
-                                new JScrollPane(area),
-                                "Registration response (incl. setup steps)",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        // Human-friendly registration response with clickable links.
+                        RegistrationUi.showRegistrationResponse(SettingsPanel.this, value);
                     }
                 }
                 @Override public void onError(Throwable error) {
@@ -144,5 +141,25 @@ final class SettingsPanel extends JPanel {
         regWrap.add(new JScrollPane(out), BorderLayout.SOUTH);
 
         add(regWrap, BorderLayout.CENTER);
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String v : values) {
+            if (!isBlank(v)) return v;
+        }
+        return null;
+    }
+
+    private static String randomSuffix() {
+        String alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder();
+        java.util.Random r = new java.util.Random();
+        for (int i = 0; i < 6; i++) sb.append(alphabet.charAt(r.nextInt(alphabet.length())));
+        return sb.toString();
     }
 }
