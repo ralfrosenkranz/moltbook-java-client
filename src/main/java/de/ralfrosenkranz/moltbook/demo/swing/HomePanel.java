@@ -3,7 +3,9 @@ package de.ralfrosenkranz.moltbook.demo.swing;
 import de.ralfrosenkranz.moltbook.client.model.*;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
+import java.net.URI;
 import java.util.List;
 
 final class HomePanel extends JPanel {
@@ -15,7 +17,7 @@ final class HomePanel extends JPanel {
     private final DefaultListModel<Comment> commentModel = new DefaultListModel<>();
     private final JList<Comment> commentList = new JList<>(commentModel);
 
-    private final JTextArea postDetails = UiUtil.textArea(12, 60);
+    private final JEditorPane postDetails = new JEditorPane("text/html", "");
     private final JTextArea commentComposer = UiUtil.textArea(4, 60);
 
     private final JComboBox<String> source = new JComboBox<>(new String[]{"Feed (/feed)", "Posts (/posts)", "Submolt feed (/submolts/:name/feed)"});
@@ -68,6 +70,19 @@ final class HomePanel extends JPanel {
         JPanel right = new JPanel(new BorderLayout(8,8));
 
         postDetails.setEditable(false);
+        postDetails.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        postDetails.addHyperlinkListener(ev -> {
+            if (ev.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                try {
+                    URI uri = ev.getURL() != null ? ev.getURL().toURI() : URI.create(ev.getDescription());
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().browse(uri);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(HomePanel.this, String.valueOf(ex.getMessage()), "Cannot open link", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         JPanel postActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton up = new JButton("Upvote");
@@ -216,20 +231,27 @@ final class HomePanel extends JPanel {
             postDetails.setText("");
             return;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(p.title() == null ? "" : p.title()).append("\n");
-        sb.append("submolt: ").append(submoltLabel(p.submolt()))
-                .append("   author: ").append(authorLabel(p.author()))
-                .append("   score: ").append(p.score())
-                .append("\n");
-        sb.append("id: ").append(p.id()).append("   created_at: ").append(p.createdAt()).append("\n\n");
+
+        String title = MarkdownUtil.escapeHtml(p.title() == null ? "" : p.title());
+        String meta = "submolt: " + MarkdownUtil.escapeHtml(submoltLabel(p.submolt()))
+                + " &nbsp;&nbsp; author: " + MarkdownUtil.escapeHtml(authorLabel(p.author()))
+                + " &nbsp;&nbsp; score: " + p.score();
+        String ids = "id: " + MarkdownUtil.escapeHtml(p.id()) + " &nbsp;&nbsp; created_at: " + MarkdownUtil.escapeHtml(String.valueOf(p.createdAt()));
+        String urlLine = "";
         if (p.url() != null && !p.url().isBlank()) {
-            sb.append("url: ").append(p.url()).append("\n\n");
+            urlLine = "<div style=\"margin-top:6px\">url: " + MarkdownUtil.linkify(p.url()) + "</div>";
         }
-        if (p.content() != null) {
-            sb.append(p.content());
-        }
-        postDetails.setText(sb.toString());
+
+        String body = p.content() == null ? "" : MarkdownUtil.markdownToHtmlBody(p.content());
+
+        String html = "<h2 style=\"margin:0 0 6px 0\">" + title + "</h2>"
+                + "<div style=\"color:#444\">" + meta + "</div>"
+                + "<div style=\"color:#666;margin-top:2px\">" + ids + "</div>"
+                + urlLine
+                + "<hr style=\"margin:10px 0\">"
+                + body;
+
+        postDetails.setText(MarkdownUtil.wrapInHtmlDocument(html));
         postDetails.setCaretPosition(0);
     }
 
