@@ -18,8 +18,32 @@ final class RegistrationUi {
     }
 
     static void showRegistrationResponse(Component parent, AgentRegisterResponse resp) {
-        String html = toHtml(resp);
+        String html = toHtmlDocument("Registration response", toInnerHtml(resp));
+        showHtml(parent, "Registration response (human readable)", html, "Copy JSON", resp == null ? "" : resp.asJson());
+    }
 
+    static void showStoredRegistrationWithAuthError(Component parent, String authMessage, AgentRegisterResponse storedResp, String storedJson) {
+        StringBuilder inner = new StringBuilder();
+        inner.append("<h2>Authorization error</h2>");
+        if (authMessage != null && !authMessage.isBlank()) {
+            inner.append("<p>").append(esc(authMessage)).append("</p>");
+        }
+        inner.append("<hr/>");
+        inner.append("<h2>Stored registration response</h2>");
+        if (storedResp != null) {
+            inner.append(toInnerHtml(storedResp));
+        } else if (storedJson != null && !storedJson.isBlank()) {
+            inner.append("<pre style='white-space:pre-wrap;border:1px solid #ddd;padding:6px;'>")
+                    .append(esc(storedJson))
+                    .append("</pre>");
+        } else {
+            inner.append("<p>(no stored fullAgentRegisterResponse found)</p>");
+        }
+        String html = toHtmlDocument("Authorization error", inner.toString());
+        showHtml(parent, "API error", html, "Copy stored JSON", storedJson == null ? "" : storedJson);
+    }
+
+    static void showHtml(Component parent, String title, String html, String copyButtonLabel, String copyText) {
         JEditorPane pane = new JEditorPane("text/html", html);
         pane.setEditable(false);
         pane.setCaretPosition(0);
@@ -32,11 +56,9 @@ final class RegistrationUi {
         JScrollPane sp = new JScrollPane(pane);
         sp.setPreferredSize(new Dimension(900, 600));
 
-        JButton copyJson = new JButton("Copy JSON");
-        copyJson.addActionListener(ev -> {
-            String json = resp == null ? "" : resp.asJson();
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(json), null);
-        });
+        JButton copyJson = new JButton(copyButtonLabel == null ? "Copy" : copyButtonLabel);
+        copyJson.addActionListener(ev ->
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(copyText == null ? "" : copyText), null));
 
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         south.add(copyJson);
@@ -45,9 +67,7 @@ final class RegistrationUi {
         wrap.add(sp, BorderLayout.CENTER);
         wrap.add(south, BorderLayout.SOUTH);
 
-        JOptionPane.showMessageDialog(parent, wrap,
-                "Registration response (human readable)",
-                JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(parent, wrap, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private static void openUrl(Component parent, String url) {
@@ -62,16 +82,14 @@ final class RegistrationUi {
         }
     }
 
-    private static String toHtml(AgentRegisterResponse resp) {
+    static String toInnerHtml(AgentRegisterResponse resp) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<html><body style='font-family:sans-serif;'>");
 
         if (resp == null) {
-            sb.append("<h2>Registration response</h2><p>(null)</p></body></html>");
+            sb.append("<p>(null)</p>");
             return sb.toString();
         }
 
-        sb.append("<h2>Registration response</h2>");
         sb.append("<p><b>success:</b> ").append(resp.success()).append("<br/>");
         if (resp.status() != null) sb.append("<b>status:</b> ").append(esc(resp.status())).append("<br/>");
         if (resp.message() != null) sb.append("<b>message:</b> ").append(esc(resp.message())).append("<br/>");
@@ -141,7 +159,17 @@ final class RegistrationUi {
                 .append(esc(resp.asJson()))
                 .append("</pre>");
 
-        sb.append("</body></html>");
+        return sb.toString();
+    }
+
+    static String toHtmlDocument(String title, String innerHtml) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html><head><meta charset='utf-8'/><title>")
+                .append(esc(title == null ? "" : title))
+                .append("</title></head>")
+                .append("<body style='font-family:sans-serif;'>")
+                .append(innerHtml == null ? "" : innerHtml)
+                .append("</body></html>");
         return sb.toString();
     }
 

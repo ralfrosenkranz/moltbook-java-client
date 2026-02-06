@@ -37,11 +37,8 @@ final class AppBootstrap {
             }
         }
 
-        // Optional console overview (best-effort; never prevent startup)
         try {
-            if (!cm.apiKey().isBlank()) {
-                dumpOverview(cm.client(), Collections.emptyMap());
-            }
+            dumpOverview(cm.client(), Collections.emptyMap());
         } catch (Exception ignored) {
             // ignore
         }
@@ -77,6 +74,26 @@ final class AppBootstrap {
     try (MoltbookClient client = MoltbookClient.builder().config(cfg).build()) {
         AgentRegisterRequest req = new AgentRegisterRequest(agentName.trim(), desc);
         AgentRegisterResponse resp = client.getAgentApi().register(req);
+
+        // If the API returns success:false, do not abort the whole application.
+        // Show a clear error message and allow the user to continue (e.g. retry in Settings).
+        if (resp == null) {
+            JOptionPane.showMessageDialog(parent,
+                    "Registration failed: empty response",
+                    "Registration failed",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+        if (!resp.success()) {
+            String msg = resp.message() == null || resp.message().isBlank()
+                    ? "Registration failed (success=false)"
+                    : resp.message();
+            JOptionPane.showMessageDialog(parent,
+                    msg,
+                    "Registration failed",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
 
         String newKey = resp != null && resp.agent() != null ? resp.agent().apiKey() : null;
         String claimUrl = resp != null && resp.agent() != null ? resp.agent().claimUrl() : null;

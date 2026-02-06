@@ -104,6 +104,25 @@ final class SettingsPanel extends JPanel {
             ApiExecutor.run(this, "Registering agent…", () -> cm.client().getAgentApi().register(req), new ApiExecutor.ResultHandler<>() {
                 @Override public void onSuccess(AgentRegisterResponse value) {
                     out.setText(JsonUtil.pretty(value));
+
+                    if (value == null) {
+                        JOptionPane.showMessageDialog(SettingsPanel.this,
+                                "Registration failed: empty response",
+                                "Registration failed",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    if (!value.success()) {
+                        String msg = value.message() == null || value.message().isBlank()
+                                ? "Registration failed (success=false)"
+                                : value.message();
+                        JOptionPane.showMessageDialog(SettingsPanel.this,
+                                msg,
+                                "Registration failed",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
                     String newKey = value != null && value.agent() != null ? value.agent().apiKey() : null;
                     String claimUrl = value != null && value.agent() != null ? value.agent().claimUrl() : null;
                     if (newKey != null && !newKey.isBlank()) {
