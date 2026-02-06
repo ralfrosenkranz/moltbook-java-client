@@ -25,7 +25,8 @@ final class HomePanel extends JPanel {
     private final JTextField timeRange = new JTextField("", 6);
     private final JTextField limit = new JTextField("25", 4);
     private final JTextField offset = new JTextField("0", 4);
-    private final JTextField submolt = new JTextField("", 10);
+    private final JTextField submolt = new JTextField("", 14);
+    private final JButton chooseSubmolt = new JButton("Choose…");
 
     HomePanel(ClientManager cm) {
         super(new BorderLayout(8,8));
@@ -50,7 +51,21 @@ final class HomePanel extends JPanel {
         filters.add(new JLabel("t")); filters.add(timeRange);
         filters.add(new JLabel("limit")); filters.add(limit);
         filters.add(new JLabel("offset")); filters.add(offset);
-        filters.add(new JLabel("submolt")); filters.add(submolt);
+        filters.add(new JLabel("submolt"));
+        filters.add(submolt);
+        filters.add(chooseSubmolt);
+
+        // Only relevant for the "Submolt feed" source.
+        source.addActionListener(e -> updateSubmoltChooserState());
+        updateSubmoltChooserState();
+
+        chooseSubmolt.addActionListener(e -> {
+            String picked = SubmoltPickerDialog.pickSubmoltName(this, cm);
+            if (picked != null && !picked.isBlank()) {
+                submolt.setText(picked);
+                if (isSubmoltFeedSelected()) loadPosts();
+            }
+        });
 
         JButton refresh = new JButton("Refresh");
         refresh.addActionListener(e -> loadPosts());
@@ -318,6 +333,15 @@ final class HomePanel extends JPanel {
 
     private static String blankToNull(String s) {
         return s == null || s.trim().isBlank() ? null : s.trim();
+    }
+
+    private boolean isSubmoltFeedSelected() {
+        String src = (String) source.getSelectedItem();
+        return src != null && src.startsWith("Submolt");
+    }
+
+    private void updateSubmoltChooserState() {
+        chooseSubmolt.setEnabled(isSubmoltFeedSelected());
     }
 
     private static String submoltLabel(de.ralfrosenkranz.moltbook.client.model.Submolt sm) {
