@@ -32,6 +32,8 @@ final class HeartbeatPanel extends JPanel {
     HeartbeatPanel(ClientManager cm) {
         this.cm = cm;
 
+        UiUtil.stylePrimaryButton(runBtn);
+
         setLayout(new BorderLayout(8, 8));
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));

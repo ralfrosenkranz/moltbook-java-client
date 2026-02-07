@@ -45,6 +45,7 @@ final class SettingsPanel extends JPanel {
         form.add(apiKey, gc);
 
         JButton save = new JButton("Save & Reconnect");
+        UiUtil.stylePrimaryButton(save);
         save.addActionListener(e -> {
             cm.updateSettings(baseUrl.getText(), apiKey.getText());
             props.setProperty(ClientManager.KEY_BASE_URL, cm.baseUrl());
@@ -94,6 +95,7 @@ final class SettingsPanel extends JPanel {
         out.setEditable(false);
 
         JButton doReg = new JButton("Register");
+        UiUtil.stylePrimaryButton(doReg);
         doReg.addActionListener(e -> {
             String n = name.getText().trim();
             if (n.isBlank()) {

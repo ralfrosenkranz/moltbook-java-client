@@ -93,6 +93,12 @@ final class HomePanel extends JPanel {
         filters.add(submolt);
         filters.add(chooseSubmolt);
 
+        // Subtle visual accents (FlatLaf-only)
+        UiUtil.styleToolbarButton(offsetUp);
+        UiUtil.styleToolbarButton(offsetDown);
+        UiUtil.styleSecondaryButton(chooseSubmolt);
+        UiUtil.styleSecondaryButton(chooseSubmolt);
+
         // Only relevant for the "Submolt feed" source.
         // Changing the source is effectively switching context, so jump back to the first page.
         source.addActionListener(e -> {
@@ -154,8 +160,10 @@ final class HomePanel extends JPanel {
         offsetDown.setEnabled(true);
 
         JButton refresh = new JButton("Refresh");
+        UiUtil.styleSecondaryButton(refresh);
         refresh.addActionListener(e -> loadPosts());
         JButton newPost = new JButton("New Post…");
+        UiUtil.stylePrimaryButton(newPost);
         newPost.addActionListener(e -> createPostDialog());
         filters.add(refresh);
         filters.add(newPost);
@@ -190,6 +198,10 @@ final class HomePanel extends JPanel {
         JButton down = new JButton("Downvote");
         JButton delete = new JButton("Delete");
         JButton reloadComments = new JButton("Reload comments");
+        UiUtil.styleToolbarButton(up);
+        UiUtil.styleToolbarButton(down);
+        UiUtil.styleDangerButton(delete);
+        UiUtil.styleSecondaryButton(reloadComments);
         postActions.add(up); postActions.add(down); postActions.add(delete); postActions.add(reloadComments);
         right.add(postActions, BorderLayout.NORTH);
 

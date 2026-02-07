@@ -9,6 +9,8 @@ import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 
 import javax.swing.*;
+import javax.swing.plaf.ColorUIResource;
+import java.awt.*;
 
 
 /**
@@ -119,9 +121,47 @@ public final class MoltbookSwingClient {
         SwingUtilities.invokeLater(() -> {
             try {
                 applyLookAndFeel(SELECTED_LAF);
+                applyUiAccents();
             } catch (Exception ignored) {}
             AppBootstrap.bootstrapAndShow();
         });
+    }
+
+    /**
+     * Adds subtle color and shape accents on top of FlatLaf.
+     *
+     * This is intentionally light-touch and only applies when FlatLaf is active.
+     */
+    private static void applyUiAccents() {
+        if (!UiUtil.isFlatLafActive())
+            return;
+
+        // macOS Accent Blue
+        ColorUIResource accent = new ColorUIResource(new Color(0x0A, 0x84, 0xFF));
+        ColorUIResource accentSoft = new ColorUIResource(new Color(0x0A, 0x84, 0xFF, 56));
+
+        // Global accent / focus
+        UIManager.put("Component.accentColor", accent);
+        UIManager.put("Component.focusColor", accent);
+
+        // Rounded controls
+        UIManager.put("Component.arc", 10);
+        UIManager.put("Button.arc", 10);
+        UIManager.put("TextComponent.arc", 10);
+        UIManager.put("ScrollBar.thumbArc", 999);
+
+        // Focus ring
+        UIManager.put("Component.focusWidth", 2);
+        UIManager.put("Component.innerFocusWidth", 1);
+
+        // Selections (lists/tables/text)
+        UIManager.put("List.selectionBackground", accentSoft);
+        UIManager.put("Table.selectionBackground", accentSoft);
+        UIManager.put("Tree.selectionBackground", accentSoft);
+        UIManager.put("TextComponent.selectionBackground", accentSoft);
+
+        // Links
+        UIManager.put("Component.linkColor", accent);
     }
 
     private static void applyLookAndFeel(String selected) throws Exception {
