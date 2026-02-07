@@ -13,6 +13,7 @@ import java.net.URI;
  */
 final class CommentViewerDialog extends JDialog {
     private final ListModel<Comment> model;
+    private final JList<Comment> listToSync;
     private int index;
 
     private final JButton up = new JButton("Up");
@@ -22,13 +23,20 @@ final class CommentViewerDialog extends JDialog {
 
     static void show(Component parent, ListModel<Comment> model, int startIndex) {
         Window w = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
-        CommentViewerDialog dlg = new CommentViewerDialog(w, model, startIndex);
+        CommentViewerDialog dlg = new CommentViewerDialog(w, model, null, startIndex);
         dlg.setVisible(true);
     }
 
-    private CommentViewerDialog(Window owner, ListModel<Comment> model, int startIndex) {
+    static void show(Component parent, JList<Comment> listToSync, ListModel<Comment> model, int startIndex) {
+        Window w = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
+        CommentViewerDialog dlg = new CommentViewerDialog(w, model, listToSync, startIndex);
+        dlg.setVisible(true);
+    }
+
+    private CommentViewerDialog(Window owner, ListModel<Comment> model, JList<Comment> listToSync, int startIndex) {
         super(owner, "Comment", ModalityType.APPLICATION_MODAL);
         this.model = model;
+        this.listToSync = listToSync;
         this.index = Math.max(0, Math.min(startIndex, model.getSize() - 1));
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -115,6 +123,15 @@ final class CommentViewerDialog extends JDialog {
         );
         content.setText(html);
         content.setCaretPosition(0);
+
+        // Sync selection in the underlying comments list (HomePanel) so the user sees where we are.
+        if (listToSync != null) {
+            final int idx = index;
+            SwingUtilities.invokeLater(() -> {
+                listToSync.setSelectedIndex(idx);
+                listToSync.ensureIndexIsVisible(idx);
+            });
+        }
 
         up.setEnabled(index > 0);
         down.setEnabled(index < size - 1);

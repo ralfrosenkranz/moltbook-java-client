@@ -139,7 +139,7 @@ public final class MoltbookHttp {
                     continue;
                 }
 
-                throw MoltbookApiException.fromHttp(code, resp.message(), bodyText);
+                throw MoltbookApiException.fromHttp(code, resp.message(), message + "\n" + bodyText);
             } catch (SocketTimeoutException e) {
                 last = e;
                 if (attempt <= config.maxRetries()) {

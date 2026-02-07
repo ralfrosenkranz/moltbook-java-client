@@ -20,13 +20,24 @@ final class HomePanel extends JPanel {
     private final JEditorPane postDetails = new JEditorPane("text/html", "");
     private final JTextArea commentComposer = UiUtil.textArea(4, 60);
 
+    private static final String[] SORT_OPTIONS = new String[]{"new", "hot", "top", "rising", "controversial"};
+
     private final JComboBox<String> source = new JComboBox<>(new String[]{"Feed (/feed)", "Posts (/posts)", "Submolt feed (/submolts/:name/feed)"});
-    private final JTextField sort = new JTextField("hot", 8);
-    private final JTextField timeRange = new JTextField("", 6);
+    private final JComboBox<String> sort = new JComboBox<>(SORT_OPTIONS);
     private final JTextField limit = new JTextField("25", 4);
     private final JTextField offset = new JTextField("0", 4);
+    private final JButton offsetUp = new JButton("▲");
+    private final JButton offsetDown = new JButton("▼");
     private final JTextField submolt = new JTextField("", 14);
     private final JButton chooseSubmolt = new JButton("Choose…");
+
+    private static class Value<T> {
+        public T value;
+
+        public Value(T value) {
+            this.value = value;
+        }
+    }
 
     HomePanel(ClientManager cm) {
         super(new BorderLayout(8,8));
@@ -57,7 +68,7 @@ final class HomePanel extends JPanel {
                 Rectangle cell = commentList.getCellBounds(idx, idx);
                 if (cell == null || !cell.contains(e.getPoint())) return;
                 commentList.setSelectedIndex(idx);
-                CommentViewerDialog.show(HomePanel.this, commentModel, idx);
+                CommentViewerDialog.show(HomePanel.this, commentList, commentModel, idx);
             }
         });
 
@@ -67,31 +78,80 @@ final class HomePanel extends JPanel {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 int idx = commentList.getSelectedIndex();
-                if (idx >= 0) CommentViewerDialog.show(HomePanel.this, commentModel, idx);
+                if (idx >= 0) CommentViewerDialog.show(HomePanel.this, commentList, commentModel, idx);
             }
         });
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filters.add(source);
         filters.add(new JLabel("sort")); filters.add(sort);
-        filters.add(new JLabel("t")); filters.add(timeRange);
         filters.add(new JLabel("limit")); filters.add(limit);
         filters.add(new JLabel("offset")); filters.add(offset);
+        filters.add(offsetUp);
+        filters.add(offsetDown);
         filters.add(new JLabel("submolt"));
         filters.add(submolt);
         filters.add(chooseSubmolt);
 
         // Only relevant for the "Submolt feed" source.
-        source.addActionListener(e -> updateSubmoltChooserState());
+        // Changing the source is effectively switching context, so jump back to the first page.
+        source.addActionListener(e -> {
+            updateSubmoltChooserState();
+            offset.setText("0");
+            submolt.setText("");
+
+            // If the user selects "Submolt feed" without having chosen a submolt yet,
+            // immediately open the chooser instead of throwing an exception.
+            if (isSubmoltFeedSelected() && blankToNull(submolt.getText()) == null) {
+                String picked = SubmoltPickerDialog.pickSubmoltName(this, cm);
+                if (picked != null && !picked.isBlank()) {
+                    submolt.setText(picked);
+                } else {
+                    // No submolt chosen -> do not try to load; keep UI empty.
+                    postModel.clear();
+                    clearPostAndComments();
+                    offsetUp.setEnabled(false);
+                    offsetDown.setEnabled(false);
+                    return;
+                }
+            }
+
+            loadPosts();
+        });
         updateSubmoltChooserState();
+
+        // If the user types a submolt manually and presses Enter, treat this as a submolt switch.
+        submolt.addActionListener(e -> {
+            if (!isSubmoltFeedSelected()) return;
+            offset.setText("0");
+            loadPosts();
+        });
+
+        sort.addActionListener(e -> {
+            loadPosts();
+        });
+
+        // If the user types a submolt manually and presses Enter, treat it like a submolt switch.
+        submolt.addActionListener(e -> {
+            offset.setText("0");
+            if (isSubmoltFeedSelected()) loadPosts();
+        });
 
         chooseSubmolt.addActionListener(e -> {
             String picked = SubmoltPickerDialog.pickSubmoltName(this, cm);
             if (picked != null && !picked.isBlank()) {
                 submolt.setText(picked);
+                // Switching submolt should always jump back to the first page.
+                offset.setText("0");
                 if (isSubmoltFeedSelected()) loadPosts();
             }
         });
+
+        // Paging buttons: move offset by limit
+        offsetUp.addActionListener(e -> pageOffset(-1));
+        offsetDown.addActionListener(e -> pageOffset(+1));
+        offsetUp.setEnabled(false);
+        offsetDown.setEnabled(true);
 
         JButton refresh = new JButton("Refresh");
         refresh.addActionListener(e -> loadPosts());
@@ -224,28 +284,68 @@ final class HomePanel extends JPanel {
 
     private void loadPosts() {
         String src = (String) source.getSelectedItem();
-        String s = blankToNull(sort.getText());
+        String s = blankToNull((String) sort.getSelectedItem());
         Integer lim = parseIntOrNull(limit.getText());
-        Integer off = parseIntOrNull(offset.getText());
-        String sub = blankToNull(submolt.getText());
-        String tr = blankToNull(timeRange.getText());
+        final Value <Integer> off = new Value (parseIntOrNull(offset.getText()));
+        final Value <String> sub = new Value (blankToNull(submolt.getText()));
+        // The posts endpoint supports an optional time-range parameter ("t"), but the HomePanel UI intentionally omits it.
+        String tr = null;
+
+        // If Submolt feed is selected but no submolt is set yet, open the chooser immediately.
+        if (src != null && src.startsWith("Submolt") && sub == null) {
+            String picked = SubmoltPickerDialog.pickSubmoltName(this, cm);
+            if (picked != null && !picked.isBlank()) {
+                submolt.setText(picked);
+                offset.setText("0");
+                // re-read after selection
+                off.value = 0;
+                sub.value = picked;
+            } else {
+                // user cancelled -> just clear the UI
+                postModel.clear();
+                clearPostAndComments();
+                offsetUp.setEnabled(false);
+                offsetDown.setEnabled(false);
+                return;
+            }
+        }
 
         ApiExecutor.run(this, "Loading posts…", () -> {
             if (src != null && src.startsWith("Feed")) {
-                return cm.client().getFeedApi().getFeed(s, lim, off);
+                return cm.client().getFeedApi().getFeed(s, lim, off.value);
             } else if (src != null && src.startsWith("Submolt")) {
-                if (sub == null) throw new IllegalArgumentException("submolt required for submolt feed");
-                return cm.client().getSubmoltsApi().getSubmoltFeed(sub, s, lim, off);
+                if (sub.value == null) throw new IllegalArgumentException("submolt required for submolt feed");
+                return cm.client().getSubmoltsApi().getSubmoltFeed(sub.value, s, lim, off.value);
             } else {
-                return cm.client().getPostsApi().getPosts(s, tr, lim, off, sub);
+                return cm.client().getPostsApi().getPosts(s, tr, lim, off.value, sub.value);
             }
         }, new ApiExecutor.ResultHandler<>() {
             @Override public void onSuccess(PaginatedPostsResponse value) {
                 postModel.clear();
                 List<Post> items = value != null ? value.items() : null;
+
+                // If the current paging window yields no items (e.g. offset beyond end),
+                // jump back to the first page automatically.
+                if ((items == null || items.isEmpty()) && off.value != null && off.value > 0) {
+                    offset.setText("0");
+                    loadPosts();
+                    return;
+                }
+
                 if (items != null) {
                     for (Post p : items) postModel.addElement(p);
                 }
+
+                updateOffsetButtons(value, lim, off.value);
+
+                // Always select the first entry so the details area shows content immediately.
+                if (!postModel.isEmpty()) {
+                    postList.setSelectedIndex(0);
+                    postList.ensureIndexIsVisible(0);
+                } else {
+                    clearPostAndComments();
+                }
+
             }
             @Override public void onError(Throwable error) {
                 ApiExecutor.showError(HomePanel.this, error);
@@ -258,7 +358,14 @@ final class HomePanel extends JPanel {
             @Override public void onSuccess(Comment[] value) {
                 commentModel.clear();
                 if (value != null) {
-                    for (Comment c : value) commentModel.addElement(c);
+                    // Show comments in reverse order (chronological), and scroll to the bottom.
+                    for (int i = value.length - 1; i >= 0; i--) {
+                        commentModel.addElement(value[i]);
+                    }
+                    SwingUtilities.invokeLater(() -> {
+                        int last = commentModel.getSize() - 1;
+                        if (last >= 0) commentList.ensureIndexIsVisible(last);
+                    });
                 }
             }
             @Override public void onError(Throwable error) {
@@ -269,7 +376,7 @@ final class HomePanel extends JPanel {
 
     private void showPost(Post p) {
         if (p == null) {
-            postDetails.setText("");
+            clearPostAndComments();
             return;
         }
 
@@ -294,6 +401,54 @@ final class HomePanel extends JPanel {
 
         postDetails.setText(MarkdownUtil.wrapInHtmlDocument(html));
         postDetails.setCaretPosition(0);
+    }
+
+    private void clearPostAndComments() {
+        postDetails.setText("");
+        commentModel.clear();
+    }
+
+    private void pageOffset(int direction) {
+        Integer lim = parseIntOrNull(limit.getText());
+        Integer off = parseIntOrNull(offset.getText());
+        if (lim == null || lim <= 0) lim = 25;
+        if (off == null || off < 0) off = 0;
+        int next = off + (direction * lim);
+        if (next < 0) next = 0;
+        offset.setText(String.valueOf(next));
+        loadPosts();
+    }
+
+    private void updateOffsetButtons(PaginatedPostsResponse page, Integer lim, Integer off) {
+        if (lim == null || lim <= 0) lim = 25;
+        if (off == null || off < 0) off = 0;
+
+        boolean canUp = off > 0;
+        boolean canDown = true;
+
+        if (page != null) {
+            Integer total = page.total();
+            List<Post> items = page.items();
+            int size = items == null ? 0 : items.size();
+            if (total != null) {
+                // Some endpoints return "count" as the number of items in this page, not the grand total.
+                // In that case total == size (often with off==0) and we must not disable paging prematurely.
+                //boolean looksLikePageCountOnly = (total == size) && (off == 0);
+                boolean looksLikePageCountOnly = true;
+                if (looksLikePageCountOnly) {
+                    // Fall back to the heuristic: if we got a full page, allow paging down.
+                    canDown = size >= lim;
+                } else {
+                    canDown = (off + size) < total;
+                }
+            } else {
+                // If the API doesn't provide totals, assume end reached when fewer than limit returned.
+                canDown = size >= lim;
+            }
+        }
+
+        offsetUp.setEnabled(canUp);
+        offsetDown.setEnabled(canDown);
     }
 
     private void createPostDialog() {
@@ -399,7 +554,11 @@ final class HomePanel extends JPanel {
             if (value instanceof Post p) {
                 String score = p.score() == null ? "" : String.valueOf(p.score());
                 String sub = submoltLabel(p.submolt());
-                l.setText("[" + score + "] " + sub + "  " + (p.title() == null ? "" : p.title()));
+                Integer cc = p.commentCount();
+                String comments = cc == null ? "" : ("  [" + cc + "]");
+                Integer subs = p.submolt() == null ? null : p.submolt().subscriberCount();
+                String subscribers = subs == null ? "" : ("  subs:" + subs);
+                l.setText("[" + score + "] " + sub + comments + subscribers + "  " + (p.title() == null ? "" : p.title()));
                 l.setToolTipText(p.id());
             }
             return l;

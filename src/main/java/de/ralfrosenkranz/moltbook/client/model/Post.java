@@ -25,6 +25,8 @@ public record Post(
         @JsonDeserialize(using = AuthorLenientDeserializer.class)
         Author author,
         @JsonProperty("score") Integer score,
+        @com.fasterxml.jackson.annotation.JsonAlias({"comment_count","comments_count","num_comments","commentCount"})
+        @JsonProperty("comment_count") Integer commentCount,
         @JsonProperty("created_at") OffsetDateTime createdAt
 ) {
 }
